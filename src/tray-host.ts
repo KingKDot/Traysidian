@@ -79,15 +79,58 @@ function acquireOwnership(ownerId: number): object | null {
 }
 
 /**
- * Returns the tray image: a NativeImage, or on macOS the path to a template PNG.
+ * Obsidian's logomark from its brand kit (https://obsidian.md/brand), in a 25-unit-tall
+ * viewBox. Each path is a facet; the gaps between them carry the icon's detail.
+ */
+const LOGOMARK_PATHS = [
+	'M7 14.6a12 12 0 0 1 2.8-.6 10 10 0 0 1 .5-8.8l.4-.7a32.9 32.9 0 0 0 .9-2.3v-1c-.1-.4-.3-.7-.7-1.1-.6-.2-1.1 0-1.6.3L4.2 5.1c-.3.2-.5.6-.6 1l-.4 3a14.6 14.6 0 0 1 3.7 5.5Zm-4-4.2-.1.3-2.8 6c-.2.7-.1 1.4.4 1.9L4.8 23a8.7 8.7 0 0 0 .8-8.7c-.7-1.8-1.9-3.2-2.6-4Z',
+	'M5.8 23.5H6a23.8 23.8 0 0 1 7.4 1.4c1.2.4 2.3-.5 2.5-1.7a7 7 0 0 1 .8-2.7c-.8-2-1.6-3.2-2.6-4a5 5 0 0 0-2.9-1.3c-1.6-.2-3 .2-4 .5.6 2.3.4 5-1.4 7.8Z',
+	'm17.4 19.3 2-3c0-.4 0-.7-.2-1a18 18 0 0 1-2-3.5c-.7-1.4-.7-3.5-.8-4.6 0-.4 0-.7-.3-1l-3.4-4.3v.6L12 4l-.5 1-.3.6A11 11 0 0 0 10 9.4c0 1.3 0 2.8.9 4.7h.4c1.1.2 2.3.6 3.5 1.6 1 .8 1.8 2 2.5 3.6Z',
+];
+const LOGOMARK_WIDTH = 19.6;
+const LOGOMARK_HEIGHT = 25;
+
+function createCanvas(size: number): { canvas: HTMLCanvasElement; context: CanvasRenderingContext2D } {
+	const canvas = createEl('canvas', { attr: { width: size, height: size } });
+	const context = canvas.getContext('2d');
+	if (!context) throw new Error('Close to Tray: 2D canvas unavailable');
+	return { canvas, context };
+}
+
+/**
+ * Writes the macOS menu bar icon and returns its path.
+ *
+ * Menu bar icons are template images: black plus alpha, which the system tints for light
+ * and dark menu bars. A silhouette of the colour app icon loses its facets, so this draws
+ * the logomark instead, which keeps them as transparent gaps.
  *
  * `@electron/remote` copies NativeImages between processes as bare bitmaps and drops the
  * template flag, so a template image built here would reach the main process as plain
  * black pixels. Electron marks images loaded from a `…Template.png` path as templates
- * (picking up the `@2x` sibling too), so on macOS the icon goes through files instead.
+ * (picking up the `@2x` sibling too), so the icon goes through files instead.
  */
+function writeMacTemplateIcon(): string {
+	const templateDir = join(tmpdir(), 'obsidian-close-to-tray');
+	mkdirSync(templateDir, { recursive: true });
+	// Menu bar icons are 18pt; the 2x copy keeps them sharp on Retina displays.
+	for (const scaleFactor of [1, 2]) {
+		const size = 18 * scaleFactor;
+		const { canvas, context } = createCanvas(size);
+		const scale = size / LOGOMARK_HEIGHT;
+		context.setTransform(scale, 0, 0, scale, (size - LOGOMARK_WIDTH * scale) / 2, 0);
+		context.fillStyle = '#000';
+		for (const path of LOGOMARK_PATHS) context.fill(new Path2D(path));
+		const dataURL = canvas.toDataURL('image/png');
+		const png = Buffer.from(dataURL.slice(dataURL.indexOf(',') + 1), 'base64');
+		const fileName = scaleFactor === 1 ? 'trayIconTemplate.png' : 'trayIconTemplate@2x.png';
+		writeFileSync(join(templateDir, fileName), png);
+	}
+	return join(templateDir, 'trayIconTemplate.png');
+}
+
+/** Returns the tray image: on macOS the path to a template PNG, elsewhere the colour app icon. */
 async function loadTrayIcon(): Promise<NativeImage | string> {
-	const isMac = process.platform === 'darwin';
+	if (process.platform === 'darwin') return writeMacTemplateIcon();
 	const source = new Image();
 	// Obsidian serves its app package at the page origin; icon.png is its window icon.
 	source.src = '/icon.png';
@@ -95,39 +138,18 @@ async function loadTrayIcon(): Promise<NativeImage | string> {
 		await source.decode();
 	} catch (error) {
 		console.warn('Close to Tray: could not load icon.png, using the app icon', error);
-		// On macOS the executable's own icon is generic; the .app bundle carries the real one.
-		const iconPath = isMac ? resolve(process.execPath, '../../..') : process.execPath;
-		return remote.app.getFileIcon(iconPath, { size: 'small' });
+		return remote.app.getFileIcon(process.execPath, { size: 'small' });
 	}
 	const icon = remote.nativeImage.createEmpty();
-	const templateDir = join(tmpdir(), 'obsidian-close-to-tray');
-	const templatePath = join(templateDir, 'trayIconTemplate.png');
-	if (isMac) mkdirSync(templateDir, { recursive: true });
-	// Tray icons are 16px at 100% scaling (menu bar icons 18pt on macOS); the 2x copy keeps
-	// them sharp on HiDPI.
-	const baseSize = isMac ? 18 : 16;
+	// Tray icons are 16px at 100% scaling; the 2x copy keeps them sharp on HiDPI.
 	for (const scaleFactor of [1, 2]) {
-		const size = baseSize * scaleFactor;
-		const canvas = createEl('canvas', { attr: { width: size, height: size } });
-		const context = canvas.getContext('2d');
-		if (!context) throw new Error('Close to Tray: 2D canvas unavailable');
+		const size = 16 * scaleFactor;
+		const { canvas, context } = createCanvas(size);
 		context.imageSmoothingQuality = 'high';
 		context.drawImage(source, 0, 0, size, size);
-		if (isMac) {
-			// macOS menu bar icons are template images: black plus alpha, which the system
-			// tints for light/dark menu bars. Keep the icon's shape, paint it black.
-			context.globalCompositeOperation = 'source-in';
-			context.fillStyle = '#000';
-			context.fillRect(0, 0, size, size);
-			const dataURL = canvas.toDataURL('image/png');
-			const png = Buffer.from(dataURL.slice(dataURL.indexOf(',') + 1), 'base64');
-			const fileName = scaleFactor === 1 ? 'trayIconTemplate.png' : 'trayIconTemplate@2x.png';
-			writeFileSync(join(templateDir, fileName), png);
-		} else {
-			icon.addRepresentation({ scaleFactor, dataURL: canvas.toDataURL('image/png') });
-		}
+		icon.addRepresentation({ scaleFactor, dataURL: canvas.toDataURL('image/png') });
 	}
-	return isMac ? templatePath : icon;
+	return icon;
 }
 
 /**

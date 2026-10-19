@@ -22,13 +22,13 @@ The plugin runs entirely inside Obsidian and makes no network requests. It uses 
 
 - A capturing `beforeunload` listener cancels the window close and hides the window instead. Reloads are left alone. Quitting the app is left alone too, so Obsidian's own shutdown and save logic still runs.
 - A main-process `close` listener stops Obsidian from force-destroying the window 3 seconds after a cancelled close.
-- The tray icon is created in Obsidian's main process from Obsidian's own `icon.png`.
+- The tray icon is created in Obsidian's main process from Obsidian's own `icon.png` (on macOS, from the logomark in Obsidian's [brand kit](https://obsidian.md/brand)).
 
 Window-close handling relies on Obsidian internals (the `is-closing`/`is-quitting` IPC channels and the window-close timer). It was verified against Obsidian 1.14.4 on Windows. macOS and Linux use the same code paths but have not been tested.
 
 ### macOS
 
-- The menu bar icon is a monochrome template image (Obsidian's icon shape), so it follows light and dark menu bars.
+- The menu bar icon is a monochrome template image of Obsidian's logomark, facets included, so it follows light and dark menu bars.
 - Clicking the menu bar icon opens its menu; clicking the Dock icon brings hidden windows back.
 - Closing a window with the red button hides it. Cmd+Q quits as usual.
 

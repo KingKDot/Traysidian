@@ -1,0 +1,16 @@
+# editors
+.vscode
+.idea
+*.iml
+
+# npm
+node_modules
+
+# Build output is attached to GitHub releases, not committed.
+main.js
+*.map
+
+# Obsidian plugin data
+data.json
+
+.DS_Store

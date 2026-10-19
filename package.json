@@ -1,5 +1,5 @@
 {
-	"name": "traysidian",
+	"name": "close-to-tray",
 	"version": "1.0.0",
 	"description": "Keep Obsidian running in the system tray when its window is closed.",
 	"main": "main.js",

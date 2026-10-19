@@ -8,11 +8,11 @@ import { basename, resolve } from 'path';
  * tray icon. The icon and the id of the window that owns it live on the main-process
  * `app` object under this key, where every vault window can see them.
  */
-const STATE_KEY = 'traysidian';
+const STATE_KEY = 'closeToTray';
 /** Set on main-process `BrowserWindow`s that this plugin hid, so "Show" restores exactly those. */
-const HIDDEN_KEY = 'traysidianHidden';
+const HIDDEN_KEY = 'closeToTrayHidden';
 /** Lets the remaining vault windows take over the icon when its owner unloads the plugin. */
-const CHANNEL_NAME = 'traysidian';
+const CHANNEL_NAME = 'close-to-tray';
 
 /**
  * Main-process `Reflect`. Calling it through the remote module runs the operation in the
@@ -85,7 +85,7 @@ async function loadTrayIcon(): Promise<NativeImage> {
 	try {
 		await source.decode();
 	} catch (error) {
-		console.warn('Traysidian: could not load icon.png, using the app icon', error);
+		console.warn('Close to Tray: could not load icon.png, using the app icon', error);
 		// On macOS the executable's own icon is generic; the .app bundle carries the real one.
 		const iconPath = isMac ? resolve(process.execPath, '../../..') : process.execPath;
 		return remote.app.getFileIcon(iconPath, { size: 'small' });
@@ -98,7 +98,7 @@ async function loadTrayIcon(): Promise<NativeImage> {
 		const size = baseSize * scaleFactor;
 		const canvas = createEl('canvas', { attr: { width: size, height: size } });
 		const context = canvas.getContext('2d');
-		if (!context) throw new Error('Traysidian: 2D canvas unavailable');
+		if (!context) throw new Error('Close to Tray: 2D canvas unavailable');
 		context.imageSmoothingQuality = 'high';
 		context.drawImage(source, 0, 0, size, size);
 		if (isMac) {

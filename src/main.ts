@@ -3,7 +3,7 @@ import { ipcRenderer, remote } from 'electron';
 import type { BrowserWindow, ElectronEvent } from 'electron';
 import { TrayHost, hideWindows, mainReflect } from './tray-host';
 
-export default class TraysidianPlugin extends Plugin {
+export default class CloseToTrayPlugin extends Plugin {
 	private readonly win = remote.getCurrentWindow();
 
 	onload(): void {

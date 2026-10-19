@@ -1,4 +1,4 @@
-# Traysidian
+# Close to Tray
 
 Keeps Obsidian running in the system tray when you close its window, instead of quitting. Useful for the Obsidian command line interface, which needs the app running.
 
@@ -35,8 +35,8 @@ Window-close handling relies on Obsidian internals (the `is-closing`/`is-quittin
 ## Installing manually
 
 1. Download `main.js` and `manifest.json` from the [latest release](https://github.com/KingKDot/Traysidian/releases).
-2. Put them in `<vault>/.obsidian/plugins/traysidian/`.
-3. Reload Obsidian and enable **Traysidian** under *Settings → Community plugins*.
+2. Put them in `<vault>/.obsidian/plugins/close-to-tray/`.
+3. Reload Obsidian and enable **Close to Tray** under *Settings → Community plugins*.
 
 ## Development
 
@@ -47,7 +47,7 @@ npm run build   # type-check + production build
 npm run lint
 ```
 
-For live testing, symlink or copy `main.js` and `manifest.json` into a test vault's `.obsidian/plugins/traysidian/`.
+For live testing, symlink or copy `main.js` and `manifest.json` into a test vault's `.obsidian/plugins/close-to-tray/`.
 
 ### Releasing
 

@@ -1,7 +1,7 @@
 {
 	"id": "close-to-tray",
 	"name": "Close to Tray",
-	"version": "1.0.0",
+	"version": "1.0.1",
 	"minAppVersion": "1.14.0",
 	"description": "Keep the app running in the system tray when its window is closed, so the command line interface keeps working.",
 	"author": "KingKDot",

@@ -12,7 +12,6 @@ declare module 'electron' {
 
 	interface NativeImage {
 		addRepresentation(options: { scaleFactor: number; dataURL: string }): void;
-		setTemplateImage(option: boolean): void;
 	}
 
 	interface WebContents {
@@ -62,7 +61,8 @@ declare module 'electron' {
 
 	interface Remote {
 		app: App;
-		Tray: new (image: NativeImage) => Tray;
+		/** A path string is loaded in the main process; `…Template.png` names become macOS template images. */
+		Tray: new (image: NativeImage | string) => Tray;
 		Menu: { buildFromTemplate(template: MenuItemConstructorOptions[]): Menu };
 		nativeImage: {
 			createEmpty(): NativeImage;

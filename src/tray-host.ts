@@ -1,7 +1,8 @@
 import { remote } from 'electron';
 import type { BrowserWindow, ElectronEvent, NativeImage, Tray } from 'electron';
-import { existsSync } from 'fs';
-import { basename, resolve } from 'path';
+import { existsSync, mkdirSync, writeFileSync } from 'fs';
+import { tmpdir } from 'os';
+import { basename, join, resolve } from 'path';
 
 /**
  * Every vault window runs its own copy of this plugin, but the app should show a single
@@ -77,7 +78,15 @@ function acquireOwnership(ownerId: number): object | null {
 	return state;
 }
 
-async function loadTrayIcon(): Promise<NativeImage> {
+/**
+ * Returns the tray image: a NativeImage, or on macOS the path to a template PNG.
+ *
+ * `@electron/remote` copies NativeImages between processes as bare bitmaps and drops the
+ * template flag, so a template image built here would reach the main process as plain
+ * black pixels. Electron marks images loaded from a `…Template.png` path as templates
+ * (picking up the `@2x` sibling too), so on macOS the icon goes through files instead.
+ */
+async function loadTrayIcon(): Promise<NativeImage | string> {
 	const isMac = process.platform === 'darwin';
 	const source = new Image();
 	// Obsidian serves its app package at the page origin; icon.png is its window icon.
@@ -91,6 +100,9 @@ async function loadTrayIcon(): Promise<NativeImage> {
 		return remote.app.getFileIcon(iconPath, { size: 'small' });
 	}
 	const icon = remote.nativeImage.createEmpty();
+	const templateDir = join(tmpdir(), 'obsidian-close-to-tray');
+	const templatePath = join(templateDir, 'trayIconTemplate.png');
+	if (isMac) mkdirSync(templateDir, { recursive: true });
 	// Tray icons are 16px at 100% scaling (menu bar icons 18pt on macOS); the 2x copy keeps
 	// them sharp on HiDPI.
 	const baseSize = isMac ? 18 : 16;
@@ -107,11 +119,15 @@ async function loadTrayIcon(): Promise<NativeImage> {
 			context.globalCompositeOperation = 'source-in';
 			context.fillStyle = '#000';
 			context.fillRect(0, 0, size, size);
+			const dataURL = canvas.toDataURL('image/png');
+			const png = Buffer.from(dataURL.slice(dataURL.indexOf(',') + 1), 'base64');
+			const fileName = scaleFactor === 1 ? 'trayIconTemplate.png' : 'trayIconTemplate@2x.png';
+			writeFileSync(join(templateDir, fileName), png);
+		} else {
+			icon.addRepresentation({ scaleFactor, dataURL: canvas.toDataURL('image/png') });
 		}
-		icon.addRepresentation({ scaleFactor, dataURL: canvas.toDataURL('image/png') });
 	}
-	if (isMac) icon.setTemplateImage(true);
-	return icon;
+	return isMac ? templatePath : icon;
 }
 
 /**
@@ -182,7 +198,7 @@ export class TrayHost {
 		this.channel.close();
 	}
 
-	private createTray(icon: NativeImage): Tray {
+	private createTray(icon: NativeImage | string): Tray {
 		const tray = new remote.Tray(icon);
 		tray.setToolTip('Obsidian');
 		tray.setContextMenu(

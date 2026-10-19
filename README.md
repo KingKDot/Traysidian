@@ -34,7 +34,7 @@ Window-close handling relies on Obsidian internals (the `is-closing`/`is-quittin
 
 ## Installing manually
 
-1. Download `main.js` and `manifest.json` from the [latest release](https://github.com/KingKDot/Traysidian/releases).
+1. Download `main.js`, `manifest.json`, and `styles.css` from the [latest release](https://github.com/KingKDot/Traysidian/releases).
 2. Put them in `<vault>/.obsidian/plugins/close-to-tray/`.
 3. Reload Obsidian and enable **Close to Tray** under *Settings → Community plugins*.
 
@@ -47,12 +47,12 @@ npm run build   # type-check + production build
 npm run lint
 ```
 
-For live testing, symlink or copy `main.js` and `manifest.json` into a test vault's `.obsidian/plugins/close-to-tray/`.
+For live testing, symlink or copy `main.js`, `manifest.json`, and `styles.css` into a test vault's `.obsidian/plugins/close-to-tray/`.
 
 ### Releasing
 
 1. Update `minAppVersion` in `manifest.json` if needed, then run `npm version <patch|minor|major>`. This bumps `manifest.json`, `package.json`, and `versions.json`.
-2. `git push --follow-tags`. The release workflow builds the plugin and creates a draft GitHub release with `main.js` and `manifest.json` attached.
+2. `git push --follow-tags`. The release workflow builds the plugin and creates a draft GitHub release with `main.js`, `manifest.json`, and `styles.css` attached.
 3. Publish the draft.
 
 ## License
